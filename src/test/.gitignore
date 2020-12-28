@@ -1,0 +1,4 @@
+.sass-cache/
+.gradle/
+build.gradle
+settings.gradle
