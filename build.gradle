@@ -34,11 +34,15 @@ dependencies {
   implementation "com.github.jruby-gradle:jruby-gradle-plugin:${jrubyGradlePluginVersion}" // for jekyll plugin
   implementation "org.jruby:jruby-complete:${jrubyVersion}"
 
-
   // jekyll 4.x moved to using sassc (relies on c extension code) over sass (pure ruby version)
   // We will stay on jekyll 3.x until sassc works with jruby
   // see https://github.com/sass/sassc-ruby/issues/182
   gems 'rubygems:jekyll:3.8.7'
+  gems 'rubygems:minima:2.5.1'
+  gems 'rubygems:jekyll-feed:0.15.1'
+  gems 'rubygems:jekyll-seo-tag:2.7.1'
+  //gems 'rubygems:unidata-jekyll-theme:0.0.1-SNAPSHOT'
+  //gems 'rubygems:unidata-jekyll-plugins:0.0.1-SNAPSHOT'
 
   //implementation project(path: ':jekyll-env', configuration: 'jrubyJar')
   testImplementation 'org.slf4j:slf4j-api:1.7.28'
@@ -83,15 +87,24 @@ tasks.withType(JavaCompile).all {
   //options.compilerArgs = ['-Xlint:deprecation']
 }
 
-sourceSets {
-  main {
-    //let's register an output folder on the main SourceSet:
-    output.dir("${buildDir}/.gems", builtBy: 'jrubyPrepare')
-    //it is now a part of the 'main' classpath and will be a part of the jar
-  }
+
+jrubyJar {
+  initScript library()
+  dependsOn tasks.jrubyPrepare
 }
 
-processResources.dependsOn jrubyPrepare
+tasks.processResources.dependsOn tasks.jrubyPrepare
+
+tasks.register('createGemJarForTests', Copy) {
+  group 'ruby'
+  from jrubyJar.outputs.files
+  into file("$buildDir/jarForTests/")
+  rename '(.+)-jruby-(.+)', '$1-jruby.jar'
+}
+
+
+tasks.test.dependsOn tasks.createGemJarForTests
+
 
 tasks.named('wrapper') {
   distributionType = Wrapper.DistributionType.ALL
@@ -112,13 +125,6 @@ String getPropertyOrFailBuild(String key) {
     property(key) as String
   }
 }
-
-//test {
-//  doFirst {
-//    environment.remove('GEM_PATH')
-//    environment.remove('GEM_HOME')
-//  }
-//}
 
 publishing {
   repositories {
