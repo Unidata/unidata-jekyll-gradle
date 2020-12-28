@@ -1,0 +1,157 @@
+plugins {
+  id 'groovy'
+  id 'java-gradle-plugin' // Adds gradleApi() compile dep and gradleTestKit() testCompile dep.
+  id 'jacoco'
+  id 'maven-publish'
+  id 'com.github.jruby-gradle.base' version "${jrubyGradlePluginVersion}"
+  id 'com.github.jruby-gradle.jar' version "${jrubyGradlePluginVersion}"
+}
+
+repositories {
+  jcenter()
+  mavenCentral()  // JCenter isn't quite a superset of Maven Central.
+  ruby.gems()
+}
+
+
+// Matches Maven's "project.groupId". Used in MANIFEST.MF for "Implementation-Vendor-Id".
+group 'edu.ucar.unidata'
+// Matches Maven's "project.version". Used in MANIFEST.MF for "Implementation-Version".
+version '0.0.1-SNAPSHOT'
+
+gradlePlugin {
+  plugins {
+    jekyllPlugin {
+      id = 'edu.ucar.unidata.site.jekyll'
+      displayName = 'Plugin for building Jekyll based websites.'
+      description = 'A gradle plugin for building jekyll based websites using the Unidata Jekyll Theme and Plugins.'
+      implementationClass = 'edu.ucar.unidata.site.jekyll.UnidataJekyllPlugin'
+    }
+  }
+}
+
+dependencies {
+  implementation "com.github.jruby-gradle:jruby-gradle-plugin:${jrubyGradlePluginVersion}" // for jekyll plugin
+  implementation "org.jruby:jruby-complete:${jrubyVersion}"
+
+
+  // jekyll 4.x moved to using sassc (relies on c extension code) over sass (pure ruby version)
+  // We will stay on jekyll 3.x until sassc works with jruby
+  // see https://github.com/sass/sassc-ruby/issues/182
+  gems 'rubygems:jekyll:3.8.7'
+
+  //implementation project(path: ':jekyll-env', configuration: 'jrubyJar')
+  testImplementation 'org.slf4j:slf4j-api:1.7.28'
+  testImplementation 'commons-io:commons-io:2.5'
+
+  //testRuntimeOnly 'ch.qos.logback:logback-classic:1.2.3'
+
+  // We need to make sure the version of spock is compatible with the version of groovy being used by the plugin
+  // project. If the version of groovy changes (because we update gradle), we should make sure to find a spock
+  // version that works.
+  testImplementation('org.spockframework:spock-core:1.3-groovy-2.5') {
+    // The Gradle API drags in the bundled version of Groovy that Gradle ships with (localGroovy()) –
+    // see https://discuss.gradle.org/t/unable-to-force-gradle-to-use-groovy-2-0-0-for-the-project/7021.
+    // Spock drags in another Groovy as a transitive dependency.
+    //
+    // So, there are multiple candidate versions of the Groovy dependency. Ordinarily, this is no problem for
+    // Gradle; it has version-conflict-resolution machinery to deal with it. However, localGroovy() is a special
+    // kind of dependency that doesn't participate in that resolution (again, see above URL).
+    //
+    // Once added to a configuration, localGroovy() will remain part of it no matter what. Furthermore, since
+    // localGroovy() is "special", Gradle will not consider a second, "normal" Groovy dependency to be in conflict
+    // with it. This can result in two different versions of Groovy in the same configuration, and ultimately
+    // errors like: "groovy.lang.GroovyRuntimeException: Conflicting module versions. Module [groovy-all is loaded
+    // in version 2.4.4 and you are trying to load version 2.4.1".
+    //
+    // Our solution is to explicitly exclude any other Groovy dependencies whenever localGroovy() is already part
+    // of the configuration.
+    exclude module: 'groovy-all'
+  }
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+// Will apply to "compileJava", "compileTestJava", "compileSourceSetJava", etc.
+tasks.withType(JavaCompile).all {
+  options.encoding = 'UTF-8'
+
+  // show deprecation details
+  //options.compilerArgs = ['-Xlint:deprecation']
+}
+
+sourceSets {
+  main {
+    //let's register an output folder on the main SourceSet:
+    output.dir("${buildDir}/.gems", builtBy: 'jrubyPrepare')
+    //it is now a part of the 'main' classpath and will be a part of the jar
+  }
+}
+
+processResources.dependsOn jrubyPrepare
+
+tasks.named('wrapper') {
+  distributionType = Wrapper.DistributionType.ALL
+  // when upgrading, make sure we are using a compatible version of spock-core for testing.
+  gradleVersion = '6.7.1'
+}
+
+ext {
+  // Used to publish Maven artifacts to Unidata's Nexus repository, https://artifacts.unidata.ucar.edu
+  NEXUS_USERNAME_KEY = 'nexus.username'
+  NEXUS_PASSWORD_KEY = 'nexus.password'
+}
+
+String getPropertyOrFailBuild(String key) {
+  if (!hasProperty(key)) {
+    throw new GradleException("You must define the '$key' property.")
+  } else {
+    property(key) as String
+  }
+}
+
+//test {
+//  doFirst {
+//    environment.remove('GEM_PATH')
+//    environment.remove('GEM_HOME')
+//  }
+//}
+
+publishing {
+  repositories {
+    String version = rootProject.version as String
+    if (version.endsWith('SNAPSHOT')) {
+      maven {
+        name = 'snapshots'
+        url = 'https://artifacts.unidata.ucar.edu/repository/unidata-snapshots/'
+      }
+    } else {
+      maven {
+        name = 'releases'
+        url = 'https://artifacts.unidata.ucar.edu/repository/unidata-releases/'
+      }
+    }
+  }
+}
+
+// The "publish" tasks require credentials for our Nexus server, which they look for in Gradle properties.
+// If those properties (i.e. NEXUS_USERNAME_KEY and NEXUS_PASSWORD_KEY) haven't been provided, the build will fail.
+// Therefore, we only want to configure credentials when a "publish" task is part of the execution plan. Otherwise,
+// unavailable credentials could cause a build to fail even if we aren't doing any publishing. The TaskExecutionGraph
+// allows us to do that.
+gradle.taskGraph.whenReady {TaskExecutionGraph taskGraph ->
+  // This won't find any publishToMavenLocal tasks. Those are of type PublishToMavenLocal
+  Collection<Task> mavenPublishTasks = taskGraph.allTasks.findAll {
+    it instanceof PublishToMavenRepository
+  }
+
+  mavenPublishTasks.each {
+    it.repository.credentials.with {
+      username = getPropertyOrFailBuild NEXUS_USERNAME_KEY
+      password = getPropertyOrFailBuild NEXUS_PASSWORD_KEY
+    }
+  }
+}
