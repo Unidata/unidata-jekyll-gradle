@@ -3,6 +3,8 @@ plugins {
   id 'maven-publish'
 }
 
+apply from: "$rootDir/gradle/any/properties.gradle"
+
 allprojects {
   // Values in gradle.properties from root repository
   version = "${unidataPluginVersion}"
@@ -26,67 +28,4 @@ ext {
   buildTimestamp = iso_8601_format.format(new Date())
 }
 
-String getPropertyOrFailBuild(String key) {
-  if (!hasProperty(key)) {
-    throw new GradleException("You must define the '$key' property.")
-  } else {
-    property(key) as String
-  }
-}
-
-// Will apply to "compileJava", "compileTestJava", "compileSourceSetJava", etc.
-tasks.withType(JavaCompile).all {
-  sourceCompatibility = JavaVersion.VERSION_1_8
-  targetCompatibility = JavaVersion.VERSION_1_8
-  options.encoding = 'UTF-8'
-
-  // show deprecation details
-  //options.compilerArgs = ['-Xlint:deprecation']
-}
-
-tasks.withType(Jar).all {   // Applies to Jar, War, Ear and ShadowJar tasks.
-
-  // Fails the build when an attempt is made to add a duplicate entry to an archive.
-  duplicatesStrategy = 'fail'
-
-  manifest {
-    // Subprojects have not yet been configured, but they may want to reassign these attributes.
-    // So, we're going to delay evaluation by using lazy GStrings: http://goo.gl/zwWnPh
-    // Evaluation will happen when these strings are read, which should first occur during the UP-TO-DATE
-    // check of the execution phase.
-    attributes 'Implementation-Title': "${-> project.title}",
-        'Implementation-Version': "${-> project.version}",
-        'Implementation-Vendor-Id': "${-> project.group}",
-        'Implementation-Vendor': "${-> project.vendor}",
-        'Implementation-URL': "${-> project.url}",
-        'Created-By': "Gradle $gradle.gradleVersion",
-        'Build-Jdk': System.properties['java.version'],
-        'Built-By': System.properties['user.name']
-  }
-
-  doFirst {
-    // We cannot add this attribute during the configuration phase because it'll cause the jar task to never
-    // be UP-TO-DATE: http://goo.gl/kbVWXR. Adding it during the execution phase removes it as an input to
-    // Gradle's incremental build machinery.
-    manifest.attributes 'Built-On': project.buildTimestamp  // Defined in root project.
-  }
-}
-
-// The "publish" tasks require credentials for our Nexus server, which they look for in Gradle properties.
-// If those properties (i.e. NEXUS_USERNAME_KEY and NEXUS_PASSWORD_KEY) haven't been provided, the build will fail.
-// Therefore, we only want to configure credentials when a "publish" task is part of the execution plan. Otherwise,
-// unavailable credentials could cause a build to fail even if we aren't doing any publishing. The TaskExecutionGraph
-// allows us to do that.
-gradle.taskGraph.whenReady {TaskExecutionGraph taskGraph ->
-  // This won't find any publishToMavenLocal tasks. Those are of type PublishToMavenLocal
-  Collection<Task> mavenPublishTasks = taskGraph.allTasks.findAll {
-    it instanceof PublishToMavenRepository
-  }
-
-  mavenPublishTasks.each {
-    it.repository.credentials.with {
-      username = getPropertyOrFailBuild NEXUS_USERNAME_KEY
-      password = getPropertyOrFailBuild NEXUS_PASSWORD_KEY
-    }
-  }
-}
+apply from: "$rootDir/gradle/root/publishing.gradle"

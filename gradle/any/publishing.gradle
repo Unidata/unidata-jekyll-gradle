@@ -1,0 +1,18 @@
+apply plugin: 'maven-publish'
+
+publishing {
+  repositories {
+    String version = rootProject.version as String
+    if (version.endsWith('SNAPSHOT')) {
+      maven {
+        name = 'snapshots'
+        url = 'https://artifacts.unidata.ucar.edu/repository/unidata-snapshots/'
+      }
+    } else {
+      maven {
+        name = 'releases'
+        url = 'https://artifacts.unidata.ucar.edu/repository/unidata-releases/'
+      }
+    }
+  }
+}

@@ -2,9 +2,11 @@ plugins {
   id 'groovy'
   id 'java-gradle-plugin' // Adds gradleApi() compile dep and gradleTestKit() testCompile dep.
   id 'jacoco'
-  id 'maven-publish'
   id 'com.github.jruby-gradle.base' version "${jrubyGradlePluginVersion}"
 }
+
+apply from: "$rootDir/gradle/any/publishing.gradle"
+apply from: "$rootDir/gradle/any/java.gradle"
 
 ext.title = 'Jekyll Gradle plugin for use at UCAR/Unidata'
 project.description = 'Gradle plugin for using Jekyll to generate Unidata documentation sets.'
