@@ -1,0 +1,27 @@
+name: Test unidata-jekyll-gradle plugin
+
+on: [pull_request]
+
+jobs:
+  tests-zulu:
+    name: unidata-jekyll-gradle plugin tests (Zulu JDK)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # test against latest 8, 11 LTS versions
+        java: [ 8, 11 ]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup java ${{ matrix.java }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java }}
+          architecture: x64
+      - name: Cache Gradle packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+          restore-keys: ${{ runner.os }}-gradle
+      - name: Build and test with Gradle
+        run: ./gradlew --info --stacktrace test
