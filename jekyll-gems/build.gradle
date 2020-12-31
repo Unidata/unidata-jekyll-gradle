@@ -11,11 +11,6 @@ apply from: "$rootDir/gradle/any/archiving.gradle"
 ext.title = 'Jekyll Gems'
 project.description = 'JRuby environment for running Jekyll to generate Unidata documentation sets.'
 
-configurations {
-  baseGems
-  completeGems
-}
-
 sourceSets {
   main {
     output.dir(tasks.jrubyPrepare.outputDir)
@@ -63,14 +58,23 @@ def gemJarMinTask = tasks.create('gemJarMin', Jar) {
   from files(sourceSets.main.output)
   exclude baseExcludes
   exclude '**/*unidata-jekyll-theme*', '**/*unidata-jekyll-plugin*'
-  archiveClassifier.set('minimum')
+  archiveBaseName.set(archiveBaseName.get() + '-minimum')
 }
 
 publishing {
   publications {
-    gemJars(MavenPublication) {
-      //from components.java
+    gemJarsMin(MavenPublication) {
+      //afterEvaluate {
+      //  artifactId gemJarMinTask.archiveBaseName.get()
+      //}
+      artifactId "${-> gemJarMinTask.archiveBaseName.get()}"
       artifact gemJarMinTask
+      pom {
+        description = "Base ${project.description}"
+        url = project.url
+      }
+    }
+    gemJarsComplete(MavenPublication) {
       artifact gemJarCompleteTask
       pom {
         description = project.description

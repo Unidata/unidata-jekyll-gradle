@@ -13,6 +13,7 @@ This can be done by adding the following to your projects `settings.gradle` file
 ~~~
 pluginManagement {
   repositories {
+    gradlePluginPortal()
     maven {
       // For Unidata Gradle Plugins
       url 'https://artifacts.unidata.ucar.edu/repository/unidata-all/'

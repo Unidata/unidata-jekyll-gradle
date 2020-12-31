@@ -114,4 +114,34 @@ class UnidataJekyllPluginTest extends Specification {
     and: "that the tasks task ran successfully"
     result.task(":tasks").outcome == SUCCESS
   }
+
+  def "Check that repositories are added by plugin."() {
+    given: "a basic jekyll site project with a task that prints the name and url of active repositories"
+
+    buildScript.append """
+    task printRepoInfo {
+      doLast {
+        repositories.each {
+          println \"repoInfoForTest: name - \${it.name}, url - \${it.url}\"
+        }
+      }
+    }
+    """
+    when: "running that task after the unidata jekyll plugin has been applied"
+    def result = GradleRunner.create()
+        .withProjectDir(tmpProjectDir.root)
+        .withArguments('printRepoInfo')
+        .withPluginClasspath()
+        .withDebug(true)
+        .forwardOutput()
+        .build()
+    then: "the task output should contain two repositories"
+    result.output.count('repoInfoForTest: name') == 2
+    and: "one is jcenter"
+    result.output.contains('name - BintrayJCenter')
+    and: "the other is the unidata-all repo"
+    result.output.contains('added by edu.ucar.unidata.site.jekyll plugin), url - https://artifacts.unidata.ucar.edu/repository/unidata-all/')
+    and: 'make sure that the task is successful'
+    result.task(":printRepoInfo").outcome == SUCCESS
+  }
 }
