@@ -48,7 +48,9 @@ class UnidataJekyllPluginTest extends Specification {
       }
 
       """
-    settingsFile.write "rootProject.name = 'test-jekyll-site'"
+    settingsFile.write """
+      rootProject.name = 'test-jekyll-site'
+    """
   }
 
   def cleanup() {

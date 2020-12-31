@@ -24,21 +24,34 @@ class UnidataJekyllPlugin implements Plugin<Project> {
     return props.getProperty('unidataPluginVersion')
   }
 
+  private static void addJcenterRepo(Project project) {
+    project.repositories.jcenter()
+  }
+
+  private static void addUnidataRepo(Project project) {
+    project.repositories.maven({
+      it.name = 'Unidata artifacts (snapshot and release - added by edu.ucar.unidata.site.jekyll plugin)'
+      it.url = 'https://artifacts.unidata.ucar.edu/repository/unidata-all/'
+    })
+  }
+
   private static void ensureBaseRepos(Project project) {
     // make sure we have the necessary repositories enabled
-    if (!project.repositories.contains(project.repositories.jcenter())) {
-      project.repositories.jcenter({
-        it.name = 'jcenter repository (added by edu.ucar.unidata.site.jekyll plugin)'
-      })
-    }
-    // only add the unidata repo if no other unidata repo has been added
-    if (!project.repositories.stream().any{
-      it.getProperties().get('url').toString().contains('artifacts.unidata.ucar.edu/repository/')
-    }) {
-      project.repositories.maven({
-        it.name = 'Unidata artifacts (snapshot and release - added by edu.ucar.unidata.site.jekyll plugin)'
-        it.url = 'https://artifacts.unidata.ucar.edu/repository/unidata-all/'
-      })
+    if (project.repositories.size() == 0) {
+      addJcenterRepo(project)
+      addUnidataRepo(project)
+    } else {
+      if (!project.repositories.stream().any {
+        it.getProperties().get('url').toString().contains('jcenter.bintray.com')
+      }) {
+        addJcenterRepo(project)
+      }
+      // only add the unidata repo if no other unidata repo has been added
+      if (!project.repositories.stream().any {
+        it.getProperties().get('url').toString().contains('artifacts.unidata.ucar.edu/repository/')
+      }) {
+        addUnidataRepo(project)
+      }
     }
   }
 
