@@ -1,121 +1,29 @@
 plugins {
-  id 'groovy'
-  id 'java-gradle-plugin' // Adds gradleApi() compile dep and gradleTestKit() testCompile dep.
-  id 'jacoco'
+  id 'base'
   id 'maven-publish'
-  id 'com.github.jruby-gradle.base' version "${jrubyGradlePluginVersion}"
-  id 'com.github.jruby-gradle.jar' version "${jrubyGradlePluginVersion}"
 }
 
-repositories {
-  jcenter()
-  mavenCentral()  // JCenter isn't quite a superset of Maven Central.
-  ruby.gems()
-}
-
-
-// Matches Maven's "project.groupId". Used in MANIFEST.MF for "Implementation-Vendor-Id".
-group 'edu.ucar.unidata'
-// Matches Maven's "project.version". Used in MANIFEST.MF for "Implementation-Version".
-version '0.0.1-SNAPSHOT'
-
-gradlePlugin {
-  plugins {
-    jekyllPlugin {
-      id = 'edu.ucar.unidata.site.jekyll'
-      displayName = 'Plugin for building Jekyll based websites.'
-      description = 'A gradle plugin for building jekyll based websites using the Unidata Jekyll Theme and Plugins.'
-      implementationClass = 'edu.ucar.unidata.site.jekyll.UnidataJekyllPlugin'
-    }
-  }
-}
-
-dependencies {
-  implementation "com.github.jruby-gradle:jruby-gradle-plugin:${jrubyGradlePluginVersion}" // for jekyll plugin
-  implementation "org.jruby:jruby-complete:${jrubyVersion}"
-
-  // jekyll 4.x moved to using sassc (relies on c extension code) over sass (pure ruby version)
-  // We will stay on jekyll 3.x until sassc works with jruby
-  // see https://github.com/sass/sassc-ruby/issues/182
-  gems 'rubygems:jekyll:3.8.7'
-  gems 'rubygems:minima:2.5.1'
-  gems 'rubygems:jekyll-feed:0.15.1'
-  gems 'rubygems:jekyll-seo-tag:2.7.1'
-  //gems 'rubygems:unidata-jekyll-theme:0.0.1-SNAPSHOT'
-  //gems 'rubygems:unidata-jekyll-plugins:0.0.1-SNAPSHOT'
-
-  //implementation project(path: ':jekyll-env', configuration: 'jrubyJar')
-  testImplementation 'org.slf4j:slf4j-api:1.7.28'
-  testImplementation 'commons-io:commons-io:2.5'
-
-  //testRuntimeOnly 'ch.qos.logback:logback-classic:1.2.3'
-
-  // We need to make sure the version of spock is compatible with the version of groovy being used by the plugin
-  // project. If the version of groovy changes (because we update gradle), we should make sure to find a spock
-  // version that works.
-  testImplementation('org.spockframework:spock-core:1.3-groovy-2.5') {
-    // The Gradle API drags in the bundled version of Groovy that Gradle ships with (localGroovy()) –
-    // see https://discuss.gradle.org/t/unable-to-force-gradle-to-use-groovy-2-0-0-for-the-project/7021.
-    // Spock drags in another Groovy as a transitive dependency.
-    //
-    // So, there are multiple candidate versions of the Groovy dependency. Ordinarily, this is no problem for
-    // Gradle; it has version-conflict-resolution machinery to deal with it. However, localGroovy() is a special
-    // kind of dependency that doesn't participate in that resolution (again, see above URL).
-    //
-    // Once added to a configuration, localGroovy() will remain part of it no matter what. Furthermore, since
-    // localGroovy() is "special", Gradle will not consider a second, "normal" Groovy dependency to be in conflict
-    // with it. This can result in two different versions of Groovy in the same configuration, and ultimately
-    // errors like: "groovy.lang.GroovyRuntimeException: Conflicting module versions. Module [groovy-all is loaded
-    // in version 2.4.4 and you are trying to load version 2.4.1".
-    //
-    // Our solution is to explicitly exclude any other Groovy dependencies whenever localGroovy() is already part
-    // of the configuration.
-    exclude module: 'groovy-all'
-  }
-}
-
-java {
-  sourceCompatibility = JavaVersion.VERSION_1_8
-  targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-// Will apply to "compileJava", "compileTestJava", "compileSourceSetJava", etc.
-tasks.withType(JavaCompile).all {
-  options.encoding = 'UTF-8'
-
-  // show deprecation details
-  //options.compilerArgs = ['-Xlint:deprecation']
+allprojects {
+  // Values in gradle.properties from root repository
+  version = "${unidataPluginVersion}"
+  status = "${unidataPluginStatus}"
+  group = "${artifactGroup}"
+  ext.vendor = "${artifactGroup}"
+  ext.url = "${artifactUrl}"
 }
 
 
-jrubyJar {
-  initScript library()
-  dependsOn tasks.jrubyPrepare
-}
-
-tasks.processResources.dependsOn tasks.jrubyPrepare
-
-tasks.register('createGemJarForTests', Copy) {
-  group 'ruby'
-  from jrubyJar.outputs.files
-  into file("$buildDir/jarForTests/")
-  rename '(.+)-jruby-(.+)', '$1-jruby.jar'
-}
-
-
-tasks.test.dependsOn tasks.createGemJarForTests
-
-
-tasks.named('wrapper') {
-  distributionType = Wrapper.DistributionType.ALL
-  // when upgrading, make sure we are using a compatible version of spock-core for testing.
-  gradleVersion = '6.7.1'
-}
-
+import java.text.SimpleDateFormat
 ext {
   // Used to publish Maven artifacts to Unidata's Nexus repository, https://artifacts.unidata.ucar.edu
   NEXUS_USERNAME_KEY = 'nexus.username'
   NEXUS_PASSWORD_KEY = 'nexus.password'
+
+  // Matches Maven's "project.organization.name". Used in MANIFEST.MF for "Implementation-Vendor".
+  title = 'unidata-jekyll-gradle project'
+
+  SimpleDateFormat iso_8601_format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+  buildTimestamp = iso_8601_format.format(new Date())
 }
 
 String getPropertyOrFailBuild(String key) {
@@ -126,20 +34,41 @@ String getPropertyOrFailBuild(String key) {
   }
 }
 
-publishing {
-  repositories {
-    String version = rootProject.version as String
-    if (version.endsWith('SNAPSHOT')) {
-      maven {
-        name = 'snapshots'
-        url = 'https://artifacts.unidata.ucar.edu/repository/unidata-snapshots/'
-      }
-    } else {
-      maven {
-        name = 'releases'
-        url = 'https://artifacts.unidata.ucar.edu/repository/unidata-releases/'
-      }
-    }
+// Will apply to "compileJava", "compileTestJava", "compileSourceSetJava", etc.
+tasks.withType(JavaCompile).all {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+  options.encoding = 'UTF-8'
+
+  // show deprecation details
+  //options.compilerArgs = ['-Xlint:deprecation']
+}
+
+tasks.withType(Jar).all {   // Applies to Jar, War, Ear and ShadowJar tasks.
+
+  // Fails the build when an attempt is made to add a duplicate entry to an archive.
+  duplicatesStrategy = 'fail'
+
+  manifest {
+    // Subprojects have not yet been configured, but they may want to reassign these attributes.
+    // So, we're going to delay evaluation by using lazy GStrings: http://goo.gl/zwWnPh
+    // Evaluation will happen when these strings are read, which should first occur during the UP-TO-DATE
+    // check of the execution phase.
+    attributes 'Implementation-Title': "${-> project.title}",
+        'Implementation-Version': "${-> project.version}",
+        'Implementation-Vendor-Id': "${-> project.group}",
+        'Implementation-Vendor': "${-> project.vendor}",
+        'Implementation-URL': "${-> project.url}",
+        'Created-By': "Gradle $gradle.gradleVersion",
+        'Build-Jdk': System.properties['java.version'],
+        'Built-By': System.properties['user.name']
+  }
+
+  doFirst {
+    // We cannot add this attribute during the configuration phase because it'll cause the jar task to never
+    // be UP-TO-DATE: http://goo.gl/kbVWXR. Adding it during the execution phase removes it as an input to
+    // Gradle's incremental build machinery.
+    manifest.attributes 'Built-On': project.buildTimestamp  // Defined in root project.
   }
 }
 
