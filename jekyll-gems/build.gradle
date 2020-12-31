@@ -6,6 +6,7 @@ plugins {
 
 apply from: "$rootDir/gradle/any/publishing.gradle"
 apply from: "$rootDir/gradle/any/java.gradle"
+apply from: "$rootDir/gradle/any/archiving.gradle"
 
 ext.title = 'Jekyll Gems'
 project.description = 'JRuby environment for running Jekyll to generate Unidata documentation sets.'
@@ -47,10 +48,34 @@ dependencies {
   gems "rubygems:unidata-jekyll-plugins:${unidataThemeVersion}"
 }
 
+def baseExcludes = ['build_info', 'doc/', 'extensions/', 'cache/']
+def gemJarCompleteTask = tasks.create('gemJarComplete', Jar) {
+  from files(sourceSets.main.output)
+  exclude baseExcludes
+}
+
+def gemJarMinTask = tasks.create('gemJarMin', Jar) {
+  from files(sourceSets.main.output)
+  exclude baseExcludes
+  exclude '**/*unidata-jekyll-theme*', '**/*unidata-jekyll-plugin*'
+  archiveBaseName.set(archiveBaseName.get() + '-minimum')
+}
+
 publishing {
   publications {
-    gemJar(MavenPublication) {
-      artifact jar
+    gemJarsMin(MavenPublication) {
+      //afterEvaluate {
+      //  artifactId gemJarMinTask.archiveBaseName.get()
+      //}
+      artifactId "${-> gemJarMinTask.archiveBaseName.get()}"
+      artifact gemJarMinTask
+      pom {
+        description = "Base ${project.description}"
+        url = project.url
+      }
+    }
+    gemJarsComplete(MavenPublication) {
+      artifact gemJarCompleteTask
       pom {
         description = project.description
         url = project.url
@@ -58,3 +83,4 @@ publishing {
     }
   }
 }
+

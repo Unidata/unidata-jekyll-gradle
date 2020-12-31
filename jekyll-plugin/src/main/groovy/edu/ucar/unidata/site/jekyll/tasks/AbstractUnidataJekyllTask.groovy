@@ -8,10 +8,10 @@ import org.gradle.api.tasks.TaskAction
 
 class AbstractUnidataJekyllTask extends JRubyExec {
   @InputDirectory
-  final DirectoryProperty sourceDirectory = project.objects.directoryProperty()
+  DirectoryProperty sourceDirectory = project.objects.directoryProperty()
 
   @OutputDirectory
-  final DirectoryProperty  destinationDirectory = project.objects.directoryProperty()
+  DirectoryProperty  destinationDirectory = project.objects.directoryProperty()
 
   @TaskAction
   @Override

@@ -29,9 +29,9 @@ gradlePlugin {
 
 dependencies {
   implementation "com.github.jruby-gradle:jruby-gradle-plugin:${jrubyGradlePluginVersion}" // for jekyll plugin
-  runtimeOnly project(':jekyll-gems')
+  runtimeOnly "org.jruby:jruby-complete:${jrubyVersion}"
 
-  testImplementation gradleTestKit()
+  testRuntimeOnly project(':jekyll-gems')
   testImplementation 'org.slf4j:slf4j-api:1.7.28'
   testImplementation 'commons-io:commons-io:2.5'
 

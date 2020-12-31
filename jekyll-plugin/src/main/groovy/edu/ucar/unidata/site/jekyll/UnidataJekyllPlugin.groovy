@@ -4,12 +4,11 @@ import com.github.jrubygradle.JRubyPlugin
 import edu.ucar.unidata.site.jekyll.extensions.UnidataJekyllExtension
 import edu.ucar.unidata.site.jekyll.tasks.BuildTask
 import edu.ucar.unidata.site.jekyll.tasks.ServeTask
+import java.util.stream.Collectors
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.tasks.Copy
-
-import java.util.stream.Collectors
 
 class UnidataJekyllPlugin implements Plugin<Project> {
 
@@ -25,21 +24,34 @@ class UnidataJekyllPlugin implements Plugin<Project> {
     return props.getProperty('unidataPluginVersion')
   }
 
+  private static void addJcenterRepo(Project project) {
+    project.repositories.jcenter()
+  }
+
+  private static void addUnidataRepo(Project project) {
+    project.repositories.maven({
+      it.name = 'Unidata artifacts (snapshot and release - added by edu.ucar.unidata.site.jekyll plugin)'
+      it.url = 'https://artifacts.unidata.ucar.edu/repository/unidata-all/'
+    })
+  }
+
   private static void ensureBaseRepos(Project project) {
     // make sure we have the necessary repositories enabled
-    if (!project.repositories.contains(project.repositories.jcenter())) {
-      project.repositories.jcenter({
-        it.name = 'jcenter repository (added by edu.ucar.unidata.site.jekyll plugin)'
-      })
-    }
-    // only add the unidata repo if no other unidata repo has been added
-    if (!project.repositories.stream().any{
-      it.getProperties().get('url').toString().contains('artifacts.unidata.ucar.edu/repository/')
-    }) {
-      project.repositories.maven({
-        it.name = 'Unidata artifacts (snapshot and release - added by edu.ucar.unidata.site.jekyll plugin)'
-        it.url = 'https://artifacts.unidata.ucar.edu/repository/unidata-all/'
-      })
+    if (project.repositories.size() == 0) {
+      addJcenterRepo(project)
+      addUnidataRepo(project)
+    } else {
+      if (!project.repositories.stream().any {
+        it.getProperties().get('url').toString().contains('jcenter.bintray.com')
+      }) {
+        addJcenterRepo(project)
+      }
+      // only add the unidata repo if no other unidata repo has been added
+      if (!project.repositories.stream().any {
+        it.getProperties().get('url').toString().contains('artifacts.unidata.ucar.edu/repository/')
+      }) {
+        addUnidataRepo(project)
+      }
     }
   }
 
@@ -56,8 +68,10 @@ class UnidataJekyllPlugin implements Plugin<Project> {
 
   private void ensureUnidataGemJarDependency(Project project) {
     def requiredGroup = 'edu.ucar.unidata.site'
-    def requiredId = 'jekyll-gems'
-    def requiredModule = "${requiredGroup}:${requiredId}"
+    def requiredId1 = 'jekyll-gems'
+    def requiredId2 = 'jekyll-gems-minimum'
+    def requiredModule1 = "${requiredGroup}:${requiredId1}"
+    def requiredModule2 = "${requiredGroup}:${requiredId2}"
     // get a list of all dependency modules names attached to the gemJarConfigName configuration
     def gemJarConfig = project.configurations.getByName(gemJarConfigName)
     List<String> currentGemJarDeps = gemJarConfig.dependencies.stream().
@@ -65,8 +79,9 @@ class UnidataJekyllPlugin implements Plugin<Project> {
         }).
         collect(Collectors.toList())
 
-    // if the required module isn't there, then we must add it as a dependency
-    if (!currentGemJarDeps.dependencies.contains(requiredModule)) {
+    // if both of the the required module are not there, then we must add one as a dependency
+    if (!(currentGemJarDeps.dependencies.contains(requiredModule1) ||
+        currentGemJarDeps.dependencies.contains(requiredModule2))) {
       def version = readPluginVersionFromProps()
       //"group:name:version:classifier@extension"
       gemJarConfig.dependencies.add(project.dependencies.create("${requiredModule}:${version}"))

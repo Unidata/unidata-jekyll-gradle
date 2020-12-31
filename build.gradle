@@ -5,15 +5,18 @@ plugins {
 
 apply from: "$rootDir/gradle/any/properties.gradle"
 
+//version = "${unidataPluginVersion}"
+//status = "${unidataPluginStatus}"
+//group = "${artifactGroup}"
+
 allprojects {
   // Values in gradle.properties from root repository
   version = "${unidataPluginVersion}"
-  status = "${unidataPluginStatus}"
+  status = !version.endsWith("-SNAPSHOT") ? 'release': 'integration'
   group = "${artifactGroup}"
-  ext.vendor = "${artifactGroup}"
+  ext.vendor = "${artifactVendor}"
   ext.url = "${artifactUrl}"
 }
-
 
 import java.text.SimpleDateFormat
 ext {
