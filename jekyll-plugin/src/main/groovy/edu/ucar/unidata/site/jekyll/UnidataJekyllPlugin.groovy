@@ -4,12 +4,11 @@ import com.github.jrubygradle.JRubyPlugin
 import edu.ucar.unidata.site.jekyll.extensions.UnidataJekyllExtension
 import edu.ucar.unidata.site.jekyll.tasks.BuildTask
 import edu.ucar.unidata.site.jekyll.tasks.ServeTask
+import java.util.stream.Collectors
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.tasks.Copy
-
-import java.util.stream.Collectors
 
 class UnidataJekyllPlugin implements Plugin<Project> {
 
@@ -57,6 +56,11 @@ class UnidataJekyllPlugin implements Plugin<Project> {
   private void ensureUnidataGemJarDependency(Project project) {
     def requiredGroup = 'edu.ucar.unidata.site'
     def requiredId = 'jekyll-gems'
+    // We are only looking for the required module. There are two artifacts that could satisfy this.
+    // They have the same module name, but one has a classifier of "minimum".
+    // If either of those is not already listed as a gem dependency, then we will add the one without
+    // a classifier. The only difference is the one with the classifier does not contain the Unidata
+    // theme and theme plugin gems.
     def requiredModule = "${requiredGroup}:${requiredId}"
     // get a list of all dependency modules names attached to the gemJarConfigName configuration
     def gemJarConfig = project.configurations.getByName(gemJarConfigName)
