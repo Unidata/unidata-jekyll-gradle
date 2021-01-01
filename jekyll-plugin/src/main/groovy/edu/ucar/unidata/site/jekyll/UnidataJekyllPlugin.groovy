@@ -70,8 +70,8 @@ class UnidataJekyllPlugin implements Plugin<Project> {
     def requiredGroup = 'edu.ucar.unidata.site'
     def requiredId1 = 'jekyll-gems'
     def requiredId2 = 'jekyll-gems-minimum'
-    def requiredModule1 = "${requiredGroup}:${requiredId1}"
-    def requiredModule2 = "${requiredGroup}:${requiredId2}"
+    def requiredModuleComplete = "${requiredGroup}:${requiredId1}"
+    def requiredModuleMinimum = "${requiredGroup}:${requiredId2}"
     // get a list of all dependency modules names attached to the gemJarConfigName configuration
     def gemJarConfig = project.configurations.getByName(gemJarConfigName)
     List<String> currentGemJarDeps = gemJarConfig.dependencies.stream().
@@ -80,11 +80,10 @@ class UnidataJekyllPlugin implements Plugin<Project> {
         collect(Collectors.toList())
 
     // if both of the the required module are not there, then we must add one as a dependency
-    if (!(currentGemJarDeps.dependencies.contains(requiredModule1) ||
-        currentGemJarDeps.dependencies.contains(requiredModule2))) {
+    if (!(currentGemJarDeps.dependencies.contains(requiredModuleComplete) ||
+        currentGemJarDeps.dependencies.contains(requiredModuleMinimum))) {
       def version = readPluginVersionFromProps()
-      //"group:name:version:classifier@extension"
-      gemJarConfig.dependencies.add(project.dependencies.create("${requiredModule}:${version}"))
+      gemJarConfig.dependencies.add(project.dependencies.create("${requiredModuleComplete}:${version}"))
     }
   }
 
