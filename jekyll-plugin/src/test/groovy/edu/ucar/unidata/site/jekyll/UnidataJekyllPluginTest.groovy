@@ -74,6 +74,61 @@ class UnidataJekyllPluginTest extends Specification {
     result.task(":buildJekyllSite").outcome == SUCCESS
   }
 
+  def "can build default jekyll site with unidata theme"() {
+    String jekyllSiteIndexFileString = "${tmpProjectDir.root}/build/site/index.html"
+    jekyllSiteIndexFileString = cleanFilePathString(jekyllSiteIndexFileString)
+    File jekyllSiteIndexFile  = new File(jekyllSiteIndexFileString)
+    when: "a basic, zero config jekyll site project is built following the plugin's conventions using the Unidata theme"
+    String siteConfigFileString = "${tmpProjectDir.root}/_config.yml"
+    siteConfigFileString = cleanFilePathString(siteConfigFileString)
+    File siteConfigFile  = new File(siteConfigFileString)
+    siteConfigFile.append "theme: unidata-jekyll-theme"
+    def result = GradleRunner.create()
+        .withProjectDir(tmpProjectDir.root)
+        .withArguments('buildJekyllSite')
+        .withPluginClasspath()
+        .withDebug(true)
+        .build()
+    then: "make sure the html is generated in the default location"
+    jekyllSiteIndexFile.exists()
+    and: "that the task is successful"
+    result.task(":buildJekyllSite").outcome == SUCCESS
+  }
+
+  def "can build default jekyll site using jekyll-gems-minimum."() {
+    String jekyllSiteIndexFileString = "${tmpProjectDir.root}/build/site/index.html"
+    jekyllSiteIndexFileString = cleanFilePathString(jekyllSiteIndexFileString)
+    File jekyllSiteIndexFile  = new File(jekyllSiteIndexFileString)
+    when: "a basic jekyll site project is built following the plugin's conventions but uses jekyll-gems-minimum"
+    buildScript.delete()
+    buildScript = tmpProjectDir.newFile('build.gradle')
+    // need to write a full build.gradle without it pointing to the local gemjar
+    System.setProperty("UnidataJekyllPluginTesting", "false")
+    buildScript.write """
+      plugins {
+        id 'edu.ucar.unidata.site.jekyll'
+      }
+
+      // use gemjar without the unidata jekyll theme and plugin gems bundled in
+      configurations.gemjar {
+        resolutionStrategy.dependencySubstitution {
+          substitute(module('edu.ucar.unidata.site:jekyll-gems')).
+              using module('edu.ucar.unidata.site:jekyll-gems-minimum:0.0.1')
+        }
+      }
+    """
+    def result = GradleRunner.create()
+        .withProjectDir(tmpProjectDir.root)
+        .withArguments('buildJekyllSite')
+        .withPluginClasspath()
+        .withDebug(true)
+        .build()
+    then: "make sure the html is generated in the default location"
+    jekyllSiteIndexFile.exists()
+    and: "that the task is successful"
+    result.task(":buildJekyllSite").outcome == SUCCESS
+  }
+
   def "can build default jekyll site override output dir."() {
     given: "a basic jekyll site project uses a non-conventional output directory"
     String testSiteDestinationDir = "${tmpProjectDir.root}/_site"
