@@ -7,7 +7,8 @@ class ServeTask extends AbstractUnidataJekyllTask {
   @TaskAction
   @Override
   void exec() {
-    List<String> scriptArgs = Arrays.asList('serve', '--source=' + getSourceDirectory().get().asFile.absolutePath)
+    List<String> scriptArgs = Arrays.asList('serve', '--source=' + getSourceDirectory().get().asFile.absolutePath,
+        '--destination=' + getDestinationDirectory().get().asFile.absolutePath)
     setScriptArgs(scriptArgs)
     super.exec()
   }
