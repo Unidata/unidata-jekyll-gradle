@@ -12,9 +12,11 @@ import org.gradle.api.tasks.Copy
 
 class UnidataJekyllPlugin implements Plugin<Project> {
 
-  private def basePluginId = 'base'
-  private def jrubyPluginId = 'com.github.jruby-gradle.base'
-  private def gemJarConfigName = 'gemjar'
+  private static final def basePluginId = 'base'
+  private static final def jrubyPluginId = 'com.github.jruby-gradle.base'
+  private static final def gemJarConfigName = 'gemjar'
+  private static final def conventionSrcDir = 'src/site'
+  private static final def conventionDestDir = 'site'
 
   private String readPluginVersionFromProps() {
     Properties props = new Properties()
@@ -55,7 +57,7 @@ class UnidataJekyllPlugin implements Plugin<Project> {
     }
   }
 
-  private void applyPlugins(Project project) {
+  private static void applyPlugins(Project project) {
     // only apply a plugin if it has not been applied yet
     if (!project.getPluginManager().hasPlugin(basePluginId)) {
       project.getPluginManager().apply(BasePlugin.class)
@@ -91,28 +93,28 @@ class UnidataJekyllPlugin implements Plugin<Project> {
     project.extensions.create('unidataJekyll', UnidataJekyllExtension)
   }
 
-  private void addConfiguration(Project project) {
+  private static void addConfiguration(Project project) {
     project.configurations.create(gemJarConfigName)
   }
 
-  private void createTasks(Project project) {
+  private static void createTasks(Project project) {
 
     project.tasks.create('buildJekyllSite', BuildTask) {
       group = 'documentation'
       script = 'jekyll'
       sourceDirectory = project.unidataJekyll.sourceDirectory.
-          convention(project.layout.projectDirectory.dir('src/site'))
+          convention(project.layout.projectDirectory.dir(conventionSrcDir))
       destinationDirectory = project.unidataJekyll.destinationDirectory.
-          convention(project.layout.buildDirectory.dir('site'))
+          convention(project.layout.buildDirectory.dir(conventionDestDir))
     }
 
     project.tasks.create('serveJekyllSite', ServeTask) {
       group = 'documentation'
       script = 'jekyll'
       sourceDirectory = project.unidataJekyll.sourceDirectory.
-          convention(project.layout.projectDirectory.dir('src/site'))
+          convention(project.layout.projectDirectory.dir(conventionSrcDir))
       destinationDirectory = project.unidataJekyll.destinationDirectory.
-          convention(project.layout.buildDirectory.dir('site'))
+          convention(project.layout.buildDirectory.dir(conventionDestDir))
     }
 
     project.tasks.register('unpackGemJar', Copy) {
