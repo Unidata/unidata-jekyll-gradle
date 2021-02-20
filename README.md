@@ -14,9 +14,16 @@ This can be done by adding the following to your projects `settings.gradle` file
 pluginManagement {
   repositories {
     gradlePluginPortal()
-    maven {
-      // For Unidata Gradle Plugins
-      url 'https://artifacts.unidata.ucar.edu/repository/unidata-all/'
+    // limits the use of the unidata repository to the unidata jekyll plugin
+    exclusiveContent {
+      forRepository {
+        maven {
+          url "https://artifacts.unidata.ucar.edu/repository/unidata-all/"
+        }
+      }
+      filter {
+        includeModule 'edu.ucar.unidata.site.jekyll', 'edu.ucar.unidata.site.jekyll.gradle.plugin'
+      }
     }
   }
 }
