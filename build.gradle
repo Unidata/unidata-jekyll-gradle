@@ -8,7 +8,7 @@ apply from: "$rootDir/gradle/any/properties.gradle"
 allprojects {
   // Values in gradle.properties from root repository
   version = "${unidataPluginVersion}"
-  status = !version.endsWith("-SNAPSHOT") ? 'release': 'integration'
+  status = !version.endsWith('-SNAPSHOT') ? 'release': 'integration'
   group = "${artifactGroup}"
   ext.vendor = "${artifactVendor}"
   ext.url = "${artifactUrl}"
