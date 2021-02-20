@@ -4,6 +4,24 @@ plugins {
   id 'com.github.jruby-gradle.base' version "${jrubyGradlePluginVersion}"
 }
 
+repositories {
+  ruby.gems()
+  // for jruby gradle plugin
+  gradlePluginPortal()
+  // limit the use of the unidata artifacts server to the unidata jekyll theme and plugin
+  exclusiveContent {
+    forRepository {
+      maven {
+        url "https://artifacts.unidata.ucar.edu/repository/unidata-all/"
+      }
+    }
+    filter {
+      includeModule 'rubygems', 'unidata-jekyll-theme'
+      includeModule 'rubygems', 'unidata-jekyll-plugins'
+    }
+  }
+}
+
 apply from: "$rootDir/gradle/any/publishing.gradle"
 apply from: "$rootDir/gradle/any/java.gradle"
 apply from: "$rootDir/gradle/any/archiving.gradle"
@@ -19,23 +37,6 @@ sourceSets {
 
 classes.dependsOn tasks.getByName('jrubyPrepare')
 
-repositories {
-  jcenter() // com.github.jruby-gradle.base plugin
-  ruby.gems()
-  // only the unidata theme and plugin should come from the unidata artifacts server
-  exclusiveContent {
-    forRepository {
-      maven {
-        url "https://artifacts.unidata.ucar.edu/repository/unidata-all/"
-      }
-    }
-    filter {
-      includeModule 'rubygems', 'unidata-jekyll-theme'
-      includeModule 'rubygems', 'unidata-jekyll-plugins'
-    }
-  }
-}
-
 dependencies {
   // jekyll 4.x moved to using sassc (relies on c extension code) over sass (pure ruby version)
   // We will stay on jekyll 3.x until sassc works with jruby
@@ -45,7 +46,7 @@ dependencies {
   gems 'rubygems:jekyll-feed:0.15.1'
   gems 'rubygems:jekyll-seo-tag:2.7.1'
   gems "rubygems:unidata-jekyll-theme:${unidataThemeVersion}"
-  gems "rubygems:unidata-jekyll-plugins:${unidataThemeVersion}"
+  gems "rubygems:unidata-jekyll-plugins:${unidataThemePluginVersion}"
 }
 
 def baseExcludes = ['build_info', 'doc/', 'extensions/', 'cache/']

@@ -12,8 +12,9 @@ ext.title = 'Jekyll Gradle plugin for use at UCAR/Unidata'
 project.description = 'Gradle plugin for using Jekyll to generate Unidata documentation sets.'
 
 repositories {
-  jcenter()
-  mavenCentral()  // JCenter isn't quite a superset of Maven Central.
+  mavenCentral()
+  // for jruby gradle plugin
+  gradlePluginPortal()
 }
 
 gradlePlugin {
