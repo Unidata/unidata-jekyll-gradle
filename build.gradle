@@ -8,7 +8,7 @@ apply from: "$rootDir/gradle/any/properties.gradle"
 allprojects {
   // Values in gradle.properties from root repository
   version = "${unidataPluginVersion}"
-  status = !version.endsWith("-SNAPSHOT") ? 'release': 'integration'
+  status = !version.endsWith('-SNAPSHOT') ? 'release': 'integration'
   group = "${artifactGroup}"
   ext.vendor = "${artifactVendor}"
   ext.url = "${artifactUrl}"
@@ -25,6 +25,11 @@ ext {
 
   SimpleDateFormat iso_8601_format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
   buildTimestamp = iso_8601_format.format(new Date())
+}
+
+tasks.named('wrapper') {
+  distributionType = Wrapper.DistributionType.ALL
+  gradleVersion = '6.8.2'
 }
 
 apply from: "$rootDir/gradle/root/publishing.gradle"

@@ -192,8 +192,8 @@ class UnidataJekyllPluginTest extends Specification {
         .build()
     then: "the task output should contain two repositories"
     result.output.count('repoInfoForTest: name') == 2
-    and: "one is jcenter"
-    result.output.contains('name - BintrayJCenter')
+    and: "one is the gradle plugin portal repository"
+    result.output.contains('plugins.gradle.org')
     and: "the other is the unidata-all repo"
     result.output.contains('added by edu.ucar.unidata.site.jekyll plugin), url - https://artifacts.unidata.ucar.edu/repository/unidata-all/')
     and: 'make sure that the task is successful'

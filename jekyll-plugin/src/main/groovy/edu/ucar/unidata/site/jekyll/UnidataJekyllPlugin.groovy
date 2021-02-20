@@ -26,8 +26,8 @@ class UnidataJekyllPlugin implements Plugin<Project> {
     return props.getProperty('unidataPluginVersion')
   }
 
-  private static void addJcenterRepo(Project project) {
-    project.repositories.jcenter()
+  private static void addGradlePluginPortal(Project project) {
+    project.repositories.gradlePluginPortal()
   }
 
   private static void addUnidataRepo(Project project) {
@@ -40,13 +40,13 @@ class UnidataJekyllPlugin implements Plugin<Project> {
   private static void ensureBaseRepos(Project project) {
     // make sure we have the necessary repositories enabled
     if (project.repositories.size() == 0) {
-      addJcenterRepo(project)
+      addGradlePluginPortal(project)
       addUnidataRepo(project)
     } else {
       if (!project.repositories.stream().any {
-        it.getProperties().get('url').toString().contains('jcenter.bintray.com')
+        it.getProperties().get('url').toString().contains('plugins.gradle.org')
       }) {
-        addJcenterRepo(project)
+        addGradlePluginPortal(project)
       }
       // only add the unidata repo if no other unidata repo has been added
       if (!project.repositories.stream().any {
