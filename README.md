@@ -1,5 +1,9 @@
 # Unidata Jekyll Plugin for Gradle
 
+This repository is no longer maintained and has been archived.
+
+----
+
 This repository manages a gradle plugin that allows projects at the Unidata Program Center to build Jekyll based sites using the [Unidata Jekyll theme](https://github.com/Unidata/unidata-jekyll-theme).
 When applied to a gradle project, the plugin sets up one configuration and creates two tasks.
 The plugin also adds any necessary repositories and dependencies.
